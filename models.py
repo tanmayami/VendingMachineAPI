@@ -2,6 +2,7 @@ from pydantic import BaseModel, conint
 
 class User(BaseModel):
     username: str
+    password: str
     is_seller: bool = False
     balance_in_cents: int = 0 
 
