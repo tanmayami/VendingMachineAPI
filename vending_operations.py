@@ -1,6 +1,6 @@
 # OPERATIONS FOR VENDING MACHINE
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 from models import User, Deposit
 from user_operations import users_db, get_current_user
 from product_operations import products_db
@@ -34,20 +34,23 @@ def compute_change(amount):
 @vending_router.post("/buy")
 async def buy_products(product_id: int, quantity: int, current_user: User = Depends(get_current_user)):
     if product_id not in products_db:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Product not found")
     
     product = products_db[product_id]
+    if quantity <= 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Quantity must be positive integer")
+    
     if product.quantity < quantity:
-        raise HTTPException(status_code=400, detail="Not enough products available")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Not enough products available")
     
     #Assumption: Seller of product won't buy their own product but is allowed to buy other user's products 
     if product.seller == current_user.username:
-        raise HTTPException(status_code=404, detail="Forbidden: Seller can't buy their own products")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Seller can't buy their own products")
    
     price_in_cents = product.price * 100
     total_cost = price_in_cents * quantity
     if users_db[current_user.username].balance_in_cents < total_cost:
-        raise HTTPException(status_code=400, detail="Insufficient balance")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Insufficient balance")
     
     users_db[current_user.username].balance_in_cents -= total_cost
     products_db[product_id].quantity -= quantity
@@ -62,6 +65,6 @@ async def buy_products(product_id: int, quantity: int, current_user: User = Depe
 @vending_router.post("/reset/{username}")
 async def reset_deposit(username: str):
     if username not in users_db:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
     users_db[username].balance_in_cents = 0
     return {"message": "Deposit reset successful"}

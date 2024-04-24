@@ -1,4 +1,4 @@
-from pydantic import BaseModel, conint
+from pydantic import BaseModel, conint, confloat
 
 class User(BaseModel):
     username: str
@@ -9,8 +9,8 @@ class User(BaseModel):
 class Product(BaseModel):
     id: int
     name: str
-    price: float
-    quantity: int
+    price: confloat(gt=0)
+    quantity: conint(gt=0)
     seller: str
 
 class Deposit(BaseModel):

@@ -9,7 +9,7 @@ security = HTTPBasic()
 user_router = APIRouter()
 users_db = {} #using a dictionary for this task, but for production apps would use a real DB
 
-# Dependency to get current user
+# Dependency to get current auth user
 def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
     user = None
     if credentials.username in users_db:
@@ -24,30 +24,31 @@ def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
 
 #CREATE
 @user_router.post("/users/")
-async def create_user(user: User):
-    if user.username in users_db:
+async def create_user(username: str, password: str, is_seller: bool=False):
+    if username in users_db:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="User already exists")
     
-    users_db[user.username] = user
-    hashed_password = pwd_context.hash(user.password)
-    users_db[user.username].password = hashed_password
+    user = User(username=username,password=password,is_seller=is_seller,balance=0)
+    users_db[username] = user
+    hashed_password = pwd_context.hash(password)
+    users_db[username].password = hashed_password
     
-    return {"message": "User {} was added successfully".format(user.username)}
+    return {"message": "User {} was created successfully".format(user.username)}
 
 #READ
 @user_router.get("/users/{username}")
 async def read_user(username: str, current_user: User = Depends(get_current_user)):
+    if current_user.username != username:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Cannot access other user's details")
     if username not in users_db:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
-    if current_user.username != username:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Cannot access other user's details")
     
     return { "username" : username, 
              "is_seller" : users_db[username].is_seller,
              "balance_in_cents": users_db[username].balance_in_cents
     }
 
-@user_router.get("/users/all") #used for testing/debugging purposes
+@user_router.get("/users/") #used for testing/debugging purposes
 async def read_users():
     return list(users_db.values())
 
@@ -55,10 +56,10 @@ async def read_users():
 @user_router.put("/users/{username}/seller")
 async def update_seller_status(username: str, is_seller: bool, current_user: User = Depends(get_current_user)):
     if username not in users_db:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
     
     if current_user.username != username:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Cannot update other user's details")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Cannot update other user's details")
     
     if users_db[username].is_seller == is_seller:
         if is_seller: 
@@ -75,9 +76,9 @@ async def update_seller_status(username: str, is_seller: bool, current_user: Use
 @user_router.delete("/users/{username}")
 async def delete_user(username: str, current_user: User = Depends(get_current_user)):
     if username not in users_db:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
     if current_user.username != username:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Cannot delete other user")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Cannot delete other user")
 
     del users_db[username]
     return {"message": "User {} was deleted successfully".format(username)}
