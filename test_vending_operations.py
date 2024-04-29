@@ -64,21 +64,25 @@ async def test_buy_products(clean_users_and_products_db):
     with pytest.raises(HTTPException) as exc_info:
         await buy_products(product_id=1, quantity=5, current_user=buyer)
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.detail == "Insufficient balance"
 
     # Test buying with invalid product_id
     with pytest.raises(HTTPException) as exc_info:
         await buy_products(product_id=99, quantity=1, current_user=buyer)
     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+    assert exc_info.value.detail == "Product not found"
 
     # Test buying with insufficient quantity
     with pytest.raises(HTTPException) as exc_info:
         await buy_products(product_id=1, quantity=15, current_user=buyer)
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.detail == "Not enough products available"
 
     # Test buying seller's own product
     with pytest.raises(HTTPException) as exc_info:
         await buy_products(product_id=1, quantity=1, current_user=zero_balance_user)
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.detail == "Seller can't buy their own products"
 
 # Test reset_deposit function
 @pytest.mark.asyncio
