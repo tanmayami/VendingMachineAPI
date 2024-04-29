@@ -3,7 +3,7 @@
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi import APIRouter, HTTPException, Depends, status
 from models import User
-from security import verify_password, pwd_context
+from security import verify_password, hash_password
 
 security = HTTPBasic()
 user_router = APIRouter()
@@ -30,7 +30,7 @@ async def create_user(username: str, password: str, is_seller: bool=False):
     
     user = User(username=username,password=password,is_seller=is_seller,balance=0)
     users_db[username] = user
-    hashed_password = pwd_context.hash(password)
+    hashed_password = hash_password(password)
     users_db[username].password = hashed_password
     
     return {"message": "User {} was created successfully".format(user.username)}
