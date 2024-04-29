@@ -55,6 +55,7 @@ async def buy_products(product_id: int, quantity: int, current_user: User = Depe
     users_db[current_user.username].balance_in_cents -= total_cost
     products_db[product_id].quantity -= quantity
     change = compute_change(users_db[current_user.username].balance_in_cents)
+    users_db[current_user.username].balance_in_cents = change["unpaid_cents"]
 
     return {"message": "ProductId {} purchased successfully".format(product_id), 
             "quanity_purchased": quantity,

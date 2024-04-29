@@ -57,7 +57,7 @@ async def test_buy_products(clean_users_and_products_db):
         "total_cost": 300,
         "change": {"change_given": {"100": 2, "50": 0, "20": 0, "10": 0, "5": 0}, "unpaid_cents": 0}
     }
-    assert users_db["buyer"].balance_in_cents == 200
+    assert users_db["buyer"].balance_in_cents == 0
     assert products_db[1].quantity == 8
 
     # Test buying with insufficient balance
